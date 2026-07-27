@@ -31,6 +31,9 @@ public class MakePayApiClient
         string siteUrl,
         string redirectUri,
         string dpopJkt,
+        string dpopPrivateKeyPem,
+        string? previousDpopJkt,
+        string? previousDpopPrivateKeyPem,
         string? btcpayVersion,
         CancellationToken cancellationToken = default)
     {
@@ -45,7 +48,23 @@ public class MakePayApiClient
             ["btcpayServerVersion"] = btcpayVersion
         };
 
-        return await SendJson(url, body, cancellationToken);
+        var request = new HttpRequestMessage(HttpMethod.Post, url)
+        {
+            Content = new StringContent(body.ToString(Formatting.None), Encoding.UTF8, "application/json")
+        };
+        request.Headers.TryAddWithoutValidation(
+            "DPoP",
+            MakePayDpopService.CreateProof(dpopPrivateKeyPem, "POST", url));
+        if (!string.IsNullOrWhiteSpace(previousDpopPrivateKeyPem) &&
+            !string.IsNullOrWhiteSpace(previousDpopJkt) &&
+            !string.Equals(previousDpopJkt, dpopJkt, StringComparison.Ordinal))
+        {
+            request.Headers.TryAddWithoutValidation(
+                "DPoP-Previous",
+                MakePayDpopService.CreateProof(previousDpopPrivateKeyPem, "POST", url));
+        }
+
+        return await Send(request, cancellationToken);
     }
 
     public async Task<JObject> ExchangeCode(
@@ -422,18 +441,6 @@ public class MakePayApiClient
         }
 
         await RefreshAccessToken(config, cancellationToken);
-    }
-
-    private async Task<JObject> SendJson(
-        string url,
-        JObject body,
-        CancellationToken cancellationToken)
-    {
-        var request = new HttpRequestMessage(HttpMethod.Post, url)
-        {
-            Content = new StringContent(body.ToString(Formatting.None), Encoding.UTF8, "application/json")
-        };
-        return await Send(request, cancellationToken);
     }
 
     private async Task<JObject> Send(
