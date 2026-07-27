@@ -214,6 +214,16 @@ public class MakePayPaymentMethodConfig
         return ClearOAuthState();
     }
 
+    public MakePayPaymentMethodConfig ClearConnectionForReconnect()
+    {
+        var dpopPrivateKeyPem = DpopPrivateKeyPem;
+        var dpopJkt = DpopJkt;
+        ClearConnection();
+        DpopPrivateKeyPem = dpopPrivateKeyPem;
+        DpopJkt = dpopJkt;
+        return this;
+    }
+
     public static string? SerializeSettlementPriorities(
         IReadOnlyCollection<MakePaySettlementPriority> priorities)
     {

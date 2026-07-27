@@ -250,15 +250,13 @@ public class MakePayController : Controller
                 catch (Exception ex)
                 {
                     config.ClientId = null;
-                    config.DpopPrivateKeyPem = null;
-                    config.DpopJkt = null;
                     config.LastError = SafeError(ex.Message);
                     await SaveConfig(store, config.ClearOAuthState());
                     SetStatus(StatusMessageModel.StatusSeverity.Error, "MakePay connection failed. Check the MakePay settings and try again.");
                     return RedirectToAction(nameof(General), new { storeId });
                 }
             case "disconnect":
-                config.ClearConnection();
+                config.ClearConnectionForReconnect();
                 await SaveConfig(store, config);
                 SetStatus(StatusMessageModel.StatusSeverity.Success, "MakePay disconnected.");
                 return RedirectToAction(nameof(General), new { storeId });
@@ -530,7 +528,15 @@ public class MakePayController : Controller
 
     private async Task<IActionResult> Connect(StoreData store, MakePayPaymentMethodConfig config)
     {
-        var dpop = MakePayDpopService.GenerateKeyPair();
+        var previousDpopPrivateKeyPem = config.DpopPrivateKeyPem;
+        var previousDpopJkt = config.DpopJkt;
+        var dpop = !string.IsNullOrWhiteSpace(previousDpopPrivateKeyPem) &&
+                   !string.IsNullOrWhiteSpace(previousDpopJkt)
+            ? new MakePayDpopService.DpopKeyPair(
+                previousDpopPrivateKeyPem,
+                string.Empty,
+                previousDpopJkt)
+            : MakePayDpopService.GenerateKeyPair();
         var siteUrl = config.NormalizedSiteUrl();
         if (string.IsNullOrWhiteSpace(siteUrl))
         {
@@ -554,6 +560,9 @@ public class MakePayController : Controller
             siteUrl,
             redirectUri,
             dpop.Thumbprint,
+            dpop.PrivateKeyPem,
+            previousDpopJkt,
+            previousDpopPrivateKeyPem,
             null);
         config.ClientId = registration["client_id"]?.Value<string>() ??
                           throw new InvalidOperationException("MakePay did not return a client id.");
