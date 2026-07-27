@@ -10,7 +10,7 @@ namespace BTCPayServer.Plugins.MakePay;
 
 public class MakePayPlugin : BaseBTCPayServerPlugin
 {
-    public const string PluginVersion = "1.7.0";
+    public const string PluginVersion = "1.7.2";
     public static readonly PaymentMethodId MakePayPaymentMethodId = new("MAKEPAY");
 
     public override IBTCPayServerPlugin.PluginDependency[] Dependencies { get; } =
