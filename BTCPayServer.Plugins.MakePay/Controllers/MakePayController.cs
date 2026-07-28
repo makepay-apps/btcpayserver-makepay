@@ -124,7 +124,7 @@ public class MakePayController : Controller
         StoreData store,
         MakePayPaymentMethodConfig config)
     {
-        config.ConnectedPaymentSettingsUrl = config.NormalizedApiBaseUrl() + "/home";
+        config.SetConnectedCompanyUrls(null);
         try
         {
             var previousAccessToken = config.AccessToken;
@@ -144,14 +144,7 @@ public class MakePayController : Controller
 
             var routeKey = response.SelectToken("company.routeKey")?.Value<string>() ??
                            response.SelectToken("company.slug")?.Value<string>();
-            if (!string.IsNullOrWhiteSpace(routeKey))
-            {
-                config.ConnectedPaymentSettingsUrl =
-                    config.NormalizedApiBaseUrl() +
-                    "/home/" +
-                    Uri.EscapeDataString(routeKey.Trim()) +
-                    "/merchant/payment-settings";
-            }
+            config.SetConnectedCompanyUrls(routeKey);
 
             if (!string.Equals(previousAccessToken, config.AccessToken, StringComparison.Ordinal) ||
                 !string.Equals(previousRefreshToken, config.RefreshToken, StringComparison.Ordinal) ||

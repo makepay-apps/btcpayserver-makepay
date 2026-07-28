@@ -61,6 +61,9 @@ public class MakePayPaymentMethodConfig
     public string ConnectedPaymentSettingsUrl { get; set; } = "https://www.makecrypto.io/home";
 
     [JsonIgnore]
+    public string ConnectedWalletUrl { get; set; } = "https://www.makecrypto.io/home";
+
+    [JsonIgnore]
     public bool IsConfigured =>
         !string.IsNullOrWhiteSpace(ClientId) &&
         !string.IsNullOrWhiteSpace(AccessToken) &&
@@ -83,6 +86,23 @@ public class MakePayPaymentMethodConfig
     public string NormalizedApiBaseUrl() => NormalizeBaseUrl(ApiBaseUrl, "https://www.makecrypto.io");
     public string NormalizedCheckoutBaseUrl() => NormalizeBaseUrl(CheckoutBaseUrl, "https://makepay.io");
     public string NormalizedSiteUrl() => NormalizeBaseUrl(SiteUrl, string.Empty);
+
+    public void SetConnectedCompanyUrls(string? routeKey)
+    {
+        var homeUrl = NormalizedApiBaseUrl() + "/home";
+        ConnectedPaymentSettingsUrl = homeUrl;
+        ConnectedWalletUrl = homeUrl;
+
+        if (string.IsNullOrWhiteSpace(routeKey))
+        {
+            return;
+        }
+
+        var companyUrl = homeUrl + "/" + Uri.EscapeDataString(routeKey.Trim());
+        ConnectedPaymentSettingsUrl = companyUrl + "/merchant/payment-settings";
+        ConnectedWalletUrl = companyUrl + "/wallet";
+    }
+
     public string NormalizedRefundAddressMode() =>
         string.Equals(RefundAddressMode, RefundAddressModePayerEntered, StringComparison.Ordinal)
             ? RefundAddressModePayerEntered
