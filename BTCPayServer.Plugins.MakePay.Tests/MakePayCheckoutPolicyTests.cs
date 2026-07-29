@@ -14,6 +14,15 @@ namespace BTCPayServer.Plugins.MakePay.Tests;
 
 public class MakePayCheckoutPolicyTests
 {
+    [Theory]
+    [InlineData("1BoatSLRHtKNngkdXEeobR76b53LETtpyT")]
+    [InlineData("bc1qqyqszqgpqyqszqgpqyqszqgpqyqszqgpyfl4f3")]
+    [InlineData("bc1p0xlxvlhemja6c4dqv22uapctqupfhlxm9h8z3k2e72q4k9hcz7vqzk5jj0")]
+    public void BitcoinSettlementAddressesPreserveTheirEncoding(string address)
+    {
+        Assert.Equal(address, MakePayApiClient.NormalizeAddressForMakePay("BTC", $" {address} "));
+    }
+
     [Fact]
     public void MissingAnonymousFiatOnRampSettingDefaultsToEnabled()
     {
