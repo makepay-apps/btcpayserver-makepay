@@ -149,6 +149,7 @@ public class MakePayApiClient
     {
         var url = config.NormalizedApiBaseUrl() + "/api/partner/v1/makepay/payment-links";
         var amount = btcAmount.ToString("0.########", CultureInfo.InvariantCulture);
+        var normalizedSettlementAddress = NormalizeAddressForMakePay("BTC", settlementAddress);
         var body = new JObject
         {
             ["source"] = "btcpay-server",
@@ -185,7 +186,7 @@ public class MakePayApiClient
                     {
                         ["chain"] = "BTC",
                         ["asset"] = "BTC.BTC",
-                        ["address"] = settlementAddress
+                        ["address"] = normalizedSettlementAddress
                     }
                 }
             }
