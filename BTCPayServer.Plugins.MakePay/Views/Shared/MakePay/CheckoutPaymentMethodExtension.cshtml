@@ -142,6 +142,30 @@
         font-size: .75rem;
     }
 
+    .makepay-checkout .makepay-payment-received {
+        width: 100%;
+        max-width: 28rem;
+        margin: 0 auto;
+        padding: 2rem 1rem;
+    }
+
+    .makepay-checkout .makepay-payment-received-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 4rem;
+        height: 4rem;
+        margin-bottom: 1rem;
+        border-radius: 50%;
+        background: var(--btcpay-success-dim-bg, rgba(60, 153, 110, .18));
+        color: var(--btcpay-success, #3c996e);
+    }
+
+    .makepay-checkout .makepay-payment-received-icon svg {
+        width: 2rem;
+        height: 2rem;
+    }
+
     @@media (max-width: 420px) {
         .makepay-checkout .makepay-option > span {
             grid-template-columns: 2.5rem minmax(0, 1fr);
@@ -382,6 +406,23 @@
             </div>
         </div>
 
+        <div v-else-if="paymentStarted && isPaymentReceived"
+             class="makepay-payment-received text-center"
+             role="status"
+             aria-live="polite">
+            <span class="makepay-payment-received-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M5 12.5l4.25 4.25L19 7"
+                          stroke="currentColor"
+                          stroke-width="2.5"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"></path>
+                </svg>
+            </span>
+            <div class="h4 mb-2">{{ paymentReceivedTitle }}</div>
+            <p class="text-muted mb-0">{{ paymentReceivedMessage }}</p>
+        </div>
+
         <div v-else-if="paymentStarted && isCashAppPayment"
              class="makepay-cash-app-transfer text-center">
             <div class="makepay-cash-app-summary justify-content-center mb-3">
@@ -452,8 +493,11 @@
             </button>
         </div>
 
-        <div v-if="status && !isCashAppPayment" class="mt-3 small text-muted text-center">
-            Status: {{ status }}
+        <div v-if="status && !isCashAppPayment && !isPaymentReceived"
+             class="mt-3 small text-muted text-center"
+             role="status"
+             aria-live="polite">
+            {{ checkoutStatusLabel }}
         </div>
 
         <div v-if="isBusy" class="text-center py-3">
@@ -499,6 +543,7 @@
                 cashAppPaymentRequest: '',
                 paymentExpiresAtMs: 0,
                 status: '',
+                paymentReceived: false,
                 error: '',
                 success: '',
                 isBusy: false,
@@ -614,6 +659,44 @@
                     cancelled: 'Payment cancelled'
                 };
                 return labels[this.status] || 'Waiting for payment';
+            },
+            isPaymentReceived: function () {
+                return this.paymentReceived ||
+                    ['deposit_received', 'swapping', 'sending', 'complete']
+                        .indexOf(this.status) >= 0;
+            },
+            paymentReceivedTitle: function () {
+                if (['expired', 'failed', 'cancelled', 'refunded'].indexOf(this.status) >= 0) {
+                    return 'Payment needs attention';
+                }
+
+                return this.status === 'complete'
+                    ? 'Payment complete'
+                    : 'Payment received';
+            },
+            paymentReceivedMessage: function () {
+                if (['expired', 'failed', 'cancelled', 'refunded'].indexOf(this.status) >= 0) {
+                    return 'We received your transfer, but could not finish processing it. Do not send another payment to this address. Please contact the merchant for help.';
+                }
+
+                return this.status === 'complete'
+                    ? 'Thank you. This invoice is paid and you can safely close this window.'
+                    : 'Thank you. We received your payment and are finalizing the invoice. This page will update automatically.';
+            },
+            checkoutStatusLabel: function () {
+                var labels = {
+                    quoted: 'Quote ready',
+                    awaiting_deposit: 'Waiting for payment',
+                    pending: 'Waiting for payment',
+                    deposit_received: 'Payment received',
+                    swapping: 'Processing payment',
+                    sending: 'Processing payment',
+                    complete: 'Payment complete',
+                    expired: 'Payment expired',
+                    failed: 'Payment failed',
+                    cancelled: 'Payment cancelled'
+                };
+                return labels[this.status] || 'Checking payment status';
             },
             refundAddressMode: function () {
                 return this.model.makePayRefundAddressMode === 'payer_entered'
@@ -1116,6 +1199,7 @@
                 this.cashAppPaymentRequest = '';
                 this.paymentExpiresAtMs = 0;
                 this.status = '';
+                this.paymentReceived = false;
                 this.error = '';
                 this.success = '';
                 this.awaitingConfirmation = false;
@@ -1363,7 +1447,13 @@
                     this.selectedAsset = String(payload.selectedSellAsset);
                     this.syncSelectedCurrencyFromAsset();
                 }
-                this.status = payload.status || this.status;
+                var nextStatus = payload.status || this.status;
+                if (['deposit_received', 'swapping', 'sending', 'complete'].indexOf(nextStatus) >= 0) {
+                    // Once the payer transfer is observed, never expose payment
+                    // instructions again because of a weaker tracking response.
+                    this.paymentReceived = true;
+                }
+                this.status = nextStatus;
                 this.applyQuotedAmounts(payload);
                 this.paymentExpiresAtMs = this.parseDateMs(payload.expiresAt) || this.paymentExpiresAtMs;
                 if (payload.deposit) {

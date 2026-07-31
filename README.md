@@ -182,16 +182,19 @@ polling, and quote refresh.
 ## Settlement and Accounting
 
 MakePay session webhooks and reconciliation responses are treated as evidence
-that the MakePay payment session completed. The plugin records that evidence as
-a **Processing** MakePay payment on the invoice, so BTCPay does not mark the
-invoice as settled solely because MakePay reported a completed session.
+that the payer's source-chain deposit was received. As soon as the session
+reaches `deposit_received` (or a later payment state), the plugin records a
+**Processing** MakePay payment and publishes BTCPay's native **Invoice - Received
+Payment** event. The payment deliberately remains Processing, so BTCPay does not
+mark the invoice as settled without independent settlement confirmation.
 
 BTCPay final settlement should be based on independent BTC wallet/on-chain
 confirmation for the merchant-controlled settlement address.
 
 | MakePay state                       | BTCPay behavior                                                                |
 | ----------------------------------- | ------------------------------------------------------------------------------ |
-| `complete`                          | Records a Processing MakePay payment with session and deposit metadata.        |
+| `deposit_received`                  | Records a Processing payment and publishes the native Received Payment event.  |
+| `swapping`, `sending`, or `complete` | Records the same payment if an earlier status callback was missed.             |
 | `failed`, `expired`, or `cancelled` | Shows the state without recording a settled payment.                           |
 | `underpaid`                         | Keeps the prompt unsettled so the invoice can be handled by policy or support. |
 

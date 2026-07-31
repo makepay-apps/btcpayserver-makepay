@@ -32,14 +32,15 @@ public class MakePayPaymentRecorder
         _logger = logger;
     }
 
-    public async Task<bool> RecordIfComplete(
+    public async Task<bool> RecordIfReceived(
         InvoiceEntity invoice,
         MakePayPromptDetails promptDetails,
         JObject session,
         string? deliveryId = null)
     {
         var status = Text(session["status"]);
-        if (!string.Equals(status, "complete", StringComparison.OrdinalIgnoreCase))
+        var paymentStatus = MapSessionStatusToPaymentStatus(status);
+        if (paymentStatus is null)
         {
             return false;
         }
@@ -47,7 +48,10 @@ public class MakePayPaymentRecorder
         var sessionId = Text(session["id"]) ?? Text(session["sessionId"]);
         if (string.IsNullOrWhiteSpace(sessionId))
         {
-            _logger.LogWarning("MakePay complete session for invoice {InvoiceId} did not include a session id.", invoice.Id);
+            _logger.LogWarning(
+                "MakePay {Status} session for invoice {InvoiceId} did not include a session id.",
+                status,
+                invoice.Id);
             return false;
         }
 
@@ -70,7 +74,7 @@ public class MakePayPaymentRecorder
         {
             PaymentLinkUid = promptDetails.PaymentLinkUid,
             SessionId = sessionId,
-            Status = status ?? "complete",
+            Status = status!,
             PaymentMethod = Text(session["paymentMethod"]) ??
                             Text(session.SelectToken("quotePayload.paymentMethod")) ??
                             "crypto",
@@ -107,7 +111,9 @@ public class MakePayPaymentRecorder
             InvoiceDataId = invoice.Id,
             Currency = "BTC",
             Amount = promptDetails.BtcAmount,
-            Status = PaymentStatus.Processing,
+            // A source-chain deposit is real received-payment evidence, but it is
+            // not proof that the merchant-controlled settlement has confirmed.
+            Status = paymentStatus.Value,
             Created = DateTimeOffset.UtcNow
         };
         payment.Set(invoice, handler, paymentData);
@@ -155,6 +161,19 @@ public class MakePayPaymentRecorder
             promptDetails.PaymentLinkUid);
 
         return true;
+    }
+
+    internal static PaymentStatus? MapSessionStatusToPaymentStatus(string? status)
+    {
+        // A webhook can be missed while the session advances, so every state at
+        // or beyond deposit receipt must be able to create the same idempotent
+        // native payment record. It intentionally remains Processing; BTCPay may
+        // settle the invoice only from independent settlement confirmation.
+        return status?.Trim().ToLowerInvariant() switch
+        {
+            "deposit_received" or "swapping" or "sending" or "complete" => PaymentStatus.Processing,
+            _ => null
+        };
     }
 
     private static string? Text(JToken? token)

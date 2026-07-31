@@ -191,6 +191,6 @@ public class MakePayInvoiceListener : BackgroundService
             ["settlementAmount"] = current["settlementAmount"]
         };
 
-        await _paymentRecorder.RecordIfComplete(invoice, promptDetails, session);
+        await _paymentRecorder.RecordIfReceived(invoice, promptDetails, session);
     }
 }
