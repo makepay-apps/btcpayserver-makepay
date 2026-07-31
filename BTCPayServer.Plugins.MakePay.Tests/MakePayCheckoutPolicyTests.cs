@@ -370,4 +370,20 @@ public class MakePayCheckoutPolicyTests
         Assert.DoesNotContain("window.location.assign", source);
         Assert.DoesNotContain("paymentMethod=cash_app_onramp", source);
     }
+
+    [Fact]
+    public void DepositReceivedUsesPayerFacingConfirmationInsteadOfSendInstructions()
+    {
+        var source = File.ReadAllText(
+            Path.Combine(AppContext.BaseDirectory, "Fixtures", "CheckoutPaymentMethodExtension.cshtml"));
+
+        Assert.Contains("v-else-if=\"paymentStarted && isPaymentReceived\"", source);
+        Assert.Contains("Payment received", source);
+        Assert.Contains("We received your payment and are finalizing the invoice", source);
+        Assert.Contains("['deposit_received', 'swapping', 'sending', 'complete']", source);
+        Assert.Contains("paymentReceived: false", source);
+        Assert.Contains("this.paymentReceived = true", source);
+        Assert.Contains("Do not send another payment to this address", source);
+        Assert.DoesNotContain("Status: {{ status }}", source);
+    }
 }

@@ -150,7 +150,7 @@ public class MakePayWebhookController : ControllerBase
             return Ok();
         }
 
-        await _paymentRecorder.RecordIfComplete(
+        await _paymentRecorder.RecordIfReceived(
             invoice,
             promptDetails,
             session,
