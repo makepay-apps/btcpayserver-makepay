@@ -569,7 +569,7 @@ public class MakePayController : Controller
                 ["response_type"] = "code",
                 ["client_id"] = config.ClientId,
                 ["redirect_uri"] = redirectUri,
-                ["scope"] = "company:read makepay:payment-links:read makepay:payment-links:write makepay:settings:read makepay:settings:write",
+                ["scope"] = "company:read makepay:payment-links:read makepay:payment-links:write makepay:settlement:write makepay:settings:read makepay:settings:write",
                 ["code_challenge"] = MakePayDpopService.CodeChallenge(verifier),
                 ["code_challenge_method"] = "S256",
                 ["dpop_jkt"] = dpop.Thumbprint,

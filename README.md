@@ -111,11 +111,21 @@ The OAuth connection requests these scopes:
 company:read
 makepay:payment-links:read
 makepay:payment-links:write
+makepay:settlement:write
 makepay:settings:read
 makepay:settings:write
 ```
 
-The plugin does not ask for wallet withdrawal permissions.
+The company owner must explicitly approve **Choose payment settlement
+addresses** (`makepay:settlement:write`). This permits settlement to the fresh
+BTC address created by the BTCPay store wallet, outside the company's saved
+MakePay wallets. The plugin does not ask for wallet withdrawal permissions.
+
+Existing connected stores must update to version 1.7.6 or later and reconnect
+as the company owner to approve this permission. Refreshing an existing token
+does not add it. Recreate unpaid invoice links issued before this authorization
+requirement; historical payment reconciliation remains available. Anonymous
+mode does not require this OAuth permission.
 
 ## Configure Settings
 
