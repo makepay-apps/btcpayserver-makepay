@@ -121,11 +121,12 @@ addresses** (`makepay:settlement:write`). This permits settlement to the fresh
 BTC address created by the BTCPay store wallet, outside the company's saved
 MakePay wallets. The plugin does not ask for wallet withdrawal permissions.
 
-Existing connected stores must update to version 1.7.6 or later and reconnect
-as the company owner to approve this permission. Refreshing an existing token
-does not add it. Recreate unpaid invoice links issued before this authorization
-requirement; historical payment reconciliation remains available. Anonymous
-mode does not require this OAuth permission.
+Existing verified BTCPay connections established before September 25, 2026
+continue working with their original tokens and plugin versions. No update,
+reconnection, or extra token refresh is required. Previously issued grant-bound
+invoice links remain usable. This compatibility ends when the connection is
+revoked; new connections require explicit owner approval. Anonymous mode and
+historical payment reconciliation are unchanged.
 
 ## Configure Settings
 
